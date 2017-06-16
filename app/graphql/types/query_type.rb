@@ -12,10 +12,29 @@ Types::QueryType = GraphQL::ObjectType.define do
   field :category do
     type Types::CategoryType
     argument :id,!types.ID
-    description "根据id查找Product"
+    description "根据id查找分类信息"
     resolve ->(obj,args,ctx) {::Category.includes(:parent,:children).find_by_id(args["id"])}
   end
-  field :add_products do
+  field :create_or_update_categories do
+    type Types::CategoryType
+    argument :id,types.ID
+    argument :name,types.String
+    argument :parent_id,types.ID
+    description "创建商品分类信息"
+    resolve ->(obj,args,ctx) {
+      id=args["id"]
+      params=args.to_h.select{|k,v| k != "id"}
+      category=nil
+      if id.present?
+        category=Category.find_by_id(id)
+        category.update(params)
+      else
+        category=Category.create!(params)
+      end
+      category
+    }
+  end
+  field :create_or_update_products do
     type Types::ProductType
     argument :id,types.ID
     argument :title,types.String
@@ -25,7 +44,6 @@ Types::QueryType = GraphQL::ObjectType.define do
     resolve ->(obj,args,ctx) {
       id=args["id"]
       params=args.to_h.select{|k,v| k != "id"}
-      pp params
       product=nil
       if id.present?
         product=Product.find_by_id(id)
